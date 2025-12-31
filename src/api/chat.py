@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import uuid
 from src.core.database import get_async_session
+from src.core.security import get_current_user  # ← ADD THIS IMPORT
 from src.models import ChatRequest, ChatResponse, MessageCreate, Message
 from src.agent import todo_agent
 from src.services.crud import (
@@ -13,15 +14,17 @@ from src.services.crud import (
 router = APIRouter()
 
 
-@router.post("/chat/{user_id}", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse)  # ← REMOVED {user_id} from path
 async def chat_endpoint(
-    user_id: str,
     chat_request: ChatRequest,
+    current_user: dict = Depends(get_current_user),  # ← GET user from JWT token
     session: AsyncSession = Depends(get_async_session)
 ):
     """
     Main chat endpoint that processes natural language commands
     """
+    user_id = current_user["user_id"]  # ← EXTRACT user_id from token
+    
     try:
         # If no conversation_id provided, create a new conversation
         conversation_id = chat_request.conversation_id
@@ -46,10 +49,6 @@ async def chat_endpoint(
         )
         await create_message(session, user_message)
 
-        # Get conversation history for context (optional, for more sophisticated agents)
-        # For now, we'll just pass the current message to the agent
-        # In a more advanced implementation, we might fetch recent messages for context
-
         # Process the message with the AI agent
         response = await todo_agent.process_message(user_id, chat_request.message)
 
@@ -72,7 +71,7 @@ async def chat_endpoint(
         import traceback
         traceback.print_exc()  # Print full traceback
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,  # ✅ FIXED!
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing chat request: {str(e)}"
         )
 
