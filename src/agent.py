@@ -32,7 +32,7 @@ class TodoAgent:
         else:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')  # Updated model name for newer version
+                self.model = genai.GenerativeModel('gemini-1.5-flash-latest')  # Updated model name for newer version
                 logger.info("TodoAgent initialized with Gemini AI")
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini: {e}")
